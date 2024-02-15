@@ -1,0 +1,49 @@
+# Starter pipeline
+# Start with a minimal pipeline that you can customize to build and deploy your code.
+# Add steps that build, run tests, deploy, and more:
+# https://aka.ms/yaml
+
+trigger:
+- master
+
+
+# Varibles
+variables:
+ tag: '$(Build.BuildId)'
+
+stages:
+  - stage: Build
+    displayName: Build stage
+    jobs:
+      - job: Build
+        displayName: Build job
+        pool:
+         vmImage: "Ubuntu-latest"
+        steps:
+        - task: Docker@2
+          inputs:
+            containerRegistry: 'pulseserviceconnection01'
+            repository: 'containerregistry0188'
+            command: 'buildAndPush'
+            Dockerfile: '**/Dockerfile'
+            tags: |
+             $(tag)
+             $(Build.SourceVersion)
+        
+  ## Publish Artifacts pipeline code in addition to Build and Push   
+        - bash: echo Contents in System Default Working Directory; ls -R $(System.DefaultWorkingDirectory)        
+        - bash: echo Before copying Contents in Build Artifact Directory; ls -R $(Build.ArtifactStagingDirectory)    
+        - task: CopyFiles@2
+          inputs:
+            SourceFolder: '$(System.DefaultWorkingDirectory)/kube-manifests'
+            Contents: '**'
+            TargetFolder: '$(Build.ArtifactStagingDirectory)'
+            OverWrite: true
+        # List files from Build Artifact Staging Directory - After Copy
+        - bash: echo After copying to Build Artifact Directory; ls -R $(Build.ArtifactStagingDirectory) 
+        - task: PublishBuildArtifacts@1
+          inputs:
+            PathtoPublish: '$(Build.ArtifactStagingDirectory)'
+            ArtifactName: 'DevOpsPulse'
+            publishLocation: 'Container'
+            
